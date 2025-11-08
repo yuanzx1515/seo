@@ -1,16 +1,23 @@
 <script setup>
-import { useDark, useToggle } from '@vueuse/core'
+// 禁用暗色主题，强制使用浅色主题
+// import { useDark, useToggle } from '@vueuse/core'
 
-useDark({
-  selector: 'html',
-  attribute: 'class',
-  valueDark: 'dark',
-  valueLight: 'light'
-})
+// useDark({
+//   selector: 'html',
+//   attribute: 'class',
+//   valueDark: 'dark',
+//   valueLight: 'light'
+// })
 
-useDark({
-  onChanged(dark) { useToggle(dark) }
-})
+// useDark({
+//   onChanged(dark) { useToggle(dark) }
+// })
+
+// 强制设置浅色主题
+if (typeof document !== 'undefined') {
+  document.documentElement.classList.remove('dark')
+  document.documentElement.classList.add('light')
+}
 
 </script>
 

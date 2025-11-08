@@ -1,8 +1,23 @@
 import axios from "axios";
 import {ElMessage} from "element-plus";
 import router from "@/router";
+import { MOCK_ENABLED, MOCK_DELAY } from "@/config/mock";
+import { websiteMockMap } from "@/mock/WebsiteMock";
+import { backlinkMockMap } from "@/mock/BacklinkMock";
+import { domainMockMap } from "@/mock/DomainMock";
+import { serverMockMap } from "@/mock/ServerMock";
+import { geoMockMap } from "@/mock/GeoMock";
 
 const authItemName = "authorize"
+
+// 合并所有Mock映射
+const mockMap = {
+  ...websiteMockMap,
+  ...backlinkMockMap,
+  ...domainMockMap,
+  ...serverMockMap,
+  ...geoMockMap
+}
 
 const accessHeader = () => {
     return {
@@ -57,7 +72,122 @@ function deleteAccessToken(redirect = false) {
     }
 }
 
+/**
+ * 查找匹配的Mock函数
+ */
+function findMockHandler(method, url) {
+    // 先尝试精确匹配
+    const exactKey = `${method} ${url}`
+    if (mockMap[exactKey]) {
+        return mockMap[exactKey]
+    }
+    
+    // 尝试匹配带路径参数的URL（如 /api/seo/website/code/:id）
+    for (const key in mockMap) {
+        const [mockMethod, mockPath] = key.split(' ')
+        if (mockMethod !== method) continue
+        
+        // 将路径参数转换为正则表达式
+        const regexPath = mockPath.replace(/:[^/]+/g, '[^/]+')
+        const regex = new RegExp(`^${regexPath}$`)
+        if (regex.test(url)) {
+            return mockMap[key]
+        }
+    }
+    
+    return null
+}
+
+/**
+ * 从URL中提取路径参数
+ */
+function extractPathParams(method, url) {
+    for (const key in mockMap) {
+        const [mockMethod, mockPath] = key.split(' ')
+        if (mockMethod !== method) continue
+        
+        // 将路径参数转换为正则表达式
+        const regexPath = mockPath.replace(/:[^/]+/g, '([^/]+)')
+        const regex = new RegExp(`^${regexPath}$`)
+        const match = url.match(regex)
+        
+        if (match) {
+            const paramNames = mockPath.match(/:[^/]+/g) || []
+            const params = {}
+            paramNames.forEach((name, index) => {
+                const paramName = name.substring(1) // 去掉冒号
+                params[paramName] = match[index + 1]
+            })
+            return params
+        }
+    }
+    return {}
+}
+
+/**
+ * 从URL中提取Query参数
+ */
+function extractQueryParams(url) {
+    const params = {}
+    const queryString = url.split('?')[1]
+    if (queryString) {
+        queryString.split('&').forEach(param => {
+            const [key, value] = param.split('=')
+            params[decodeURIComponent(key)] = decodeURIComponent(value || '')
+        })
+    }
+    return params
+}
+
+/**
+ * 执行Mock请求
+ */
+function executeMock(method, url, data, success, failure) {
+    const handler = findMockHandler(method, url)
+    if (!handler) {
+        failure('未找到对应的Mock处理器', 404, url)
+        return
+    }
+    
+    // 提取路径参数和Query参数
+    const pathParams = extractPathParams(method, url)
+    const queryParams = extractQueryParams(url)
+    const params = { ...pathParams, ...queryParams }
+    
+    // 模拟网络延迟
+    setTimeout(() => {
+        try {
+            let result
+            if (method === 'GET') {
+                result = handler(params)
+            } else {
+                // POST请求合并路径参数和请求体数据
+                result = handler({ ...params, ...(data || {}) })
+            }
+            
+            // 处理响应
+            if (result.code === 200) {
+                success(result.data)
+            } else if (result.code === 401) {
+                failure('登录状态已过期，请重新登录！')
+                deleteAccessToken(true)
+            } else {
+                failure(result.message, result.code, url)
+            }
+        } catch (error) {
+            console.error('Mock执行错误:', error)
+            failure('Mock数据执行出错', 500, url)
+        }
+    }, MOCK_DELAY)
+}
+
 function internalPost(url, data, headers, success, failure, error = defaultError){
+    // 检查是否启用Mock
+    if (MOCK_ENABLED && url.startsWith('/api/seo/')) {
+        executeMock('POST', url, data, success, failure)
+        return
+    }
+    
     axios.post(url, data, { headers: headers }).then(({data}) => {
         if(data.code === 200) {
             success(data.data)
@@ -71,6 +201,12 @@ function internalPost(url, data, headers, success, failure, error = defaultError
 }
 
 function internalGet(url, headers, success, failure, error = defaultError){
+    // 检查是否启用Mock
+    if (MOCK_ENABLED && url.startsWith('/api/seo/')) {
+        executeMock('GET', url, null, success, failure)
+        return
+    }
+    
     axios.get(url, { headers: headers }).then(({data}) => {
         if(data.code === 200) {
             success(data.data)
