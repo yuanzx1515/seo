@@ -26,7 +26,7 @@ const router = createRouter({
         }, {
             path: '/index',
             name: 'index',
-            component: () => import('@/views/IndexView.vue'),
+            redirect: '/seo'
         }, {
             path: '/seo',
             name: 'seo',
@@ -63,8 +63,8 @@ router.beforeEach((to, from, next) => {
     /* 登录验证逻辑（暂时禁用）
     const isUnauthorized = unauthorized()
     if(to.name.startsWith('welcome') && !isUnauthorized) {
-        next('/index')
-    } else if((to.fullPath.startsWith('/index') || to.fullPath.startsWith('/seo')) && isUnauthorized) {
+        next('/seo')
+    } else if(to.fullPath.startsWith('/seo') && isUnauthorized) {
         next('/')
     } else {
         next()
