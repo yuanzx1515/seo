@@ -215,6 +215,153 @@
           </div>
         </el-tab-pane>
 
+        <!-- 工具二：域名变体生成器 -->
+        <el-tab-pane label="域名变体生成器" name="url-extractor">
+          <div class="tool-content">
+            <el-card shadow="hover" class="tool-card">
+              <template #header>
+                <div class="tool-header">
+                  <el-icon><Link /></el-icon>
+                  <span>域名变体生成器</span>
+                </div>
+              </template>
+
+              <el-form :model="urlExtractorForm" label-width="120px" class="domain-form">
+                <el-form-item label="输入域名" required>
+                  <el-input
+                    v-model="urlExtractorForm.urls"
+                    type="textarea"
+                    :rows="8"
+                    placeholder="请输入域名，每行一个&#10;例如：&#10;yujzhd.com&#10;example.com&#10;test.org"
+                    clearable
+                    style="width: 100%"
+                  />
+                  <div class="form-tip">
+                    <el-text type="info" size="small">
+                      每行输入一个域名，每个域名将生成三个变体：原始域名、*.域名、www.域名
+                    </el-text>
+                  </div>
+                </el-form-item>
+
+                <el-form-item>
+                  <el-button type="primary" @click="extractDomains" :loading="extracting">
+                    <el-icon><MagicStick /></el-icon>
+                    生成域名变体
+                  </el-button>
+                  <el-button @click="clearExtractedResults">
+                    <el-icon><Delete /></el-icon>
+                    清空结果
+                  </el-button>
+                  <el-button @click="copyAllExtractedDomains" :disabled="extractedDomains.length === 0">
+                    <el-icon><DocumentCopy /></el-icon>
+                    复制全部
+                  </el-button>
+                  <el-button @click="exportExtractedDomains" :disabled="extractedDomains.length === 0">
+                    <el-icon><Download /></el-icon>
+                    导出文件
+                  </el-button>
+                </el-form-item>
+              </el-form>
+
+              <!-- 提取结果 -->
+              <div v-if="extractedDomains.length > 0" class="results-section">
+                <div class="results-header">
+                  <el-text type="success" size="large">
+                    <el-icon><CircleCheck /></el-icon>
+                    已生成 {{ extractedDomains.length }} 个域名变体
+                  </el-text>
+                </div>
+                <div class="results-content">
+                  <el-table
+                    :data="extractedDomains"
+                    stripe
+                    border
+                    max-height="400"
+                    style="width: 100%"
+                  >
+                    <el-table-column type="index" label="序号" width="80" align="center" />
+                    <el-table-column prop="originalDomain" label="原始域名" min-width="250">
+                      <template #default="scope">
+                        <el-text>{{ scope.row.originalDomain }}</el-text>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="generatedDomain" label="生成的域名" min-width="250">
+                      <template #default="scope">
+                        <el-text copyable type="primary">{{ scope.row.generatedDomain }}</el-text>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="type" label="类型" width="150" align="center">
+                      <template #default="scope">
+                        <el-tag :type="scope.row.type === '原始' ? 'success' : scope.row.type === '通配符' ? 'warning' : 'primary'" size="small">
+                          {{ scope.row.type }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="150" align="center">
+                      <template #default="scope">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          text
+                          @click="copyDomain(scope.row.generatedDomain)"
+                        >
+                          <el-icon><DocumentCopy /></el-icon>
+                          复制
+                        </el-button>
+                        <el-button
+                          type="danger"
+                          size="small"
+                          text
+                          @click="removeExtractedDomain(scope.$index)"
+                        >
+                          <el-icon><Delete /></el-icon>
+                          删除
+                        </el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+              </div>
+
+              <!-- 示例说明 -->
+              <el-collapse class="example-section">
+                <el-collapse-item title="使用说明" name="extractor-examples">
+                  <div class="examples-content">
+                    <el-descriptions :column="1" border>
+                      <el-descriptions-item label="规则说明">
+                        <el-text>
+                          输入一个域名，系统会自动生成三个变体：<br/>
+                          • <strong>原始域名</strong>：输入的域名本身（如 yujzhd.com）<br/>
+                          • <strong>通配符域名</strong>：*.域名（如 *.yujzhd.com）<br/>
+                          • <strong>www域名</strong>：www.域名（如 www.yujzhd.com）
+                        </el-text>
+                      </el-descriptions-item>
+                      <el-descriptions-item label="示例 1">
+                        <el-text>输入: yujzhd.com</el-text><br />
+                        <el-text type="success">输出: yujzhd.com</el-text><br />
+                        <el-text type="success">输出: *.yujzhd.com</el-text><br />
+                        <el-text type="success">输出: www.yujzhd.com</el-text>
+                      </el-descriptions-item>
+                      <el-descriptions-item label="示例 2">
+                        <el-text>输入: example.com</el-text><br />
+                        <el-text type="success">输出: example.com</el-text><br />
+                        <el-text type="success">输出: *.example.com</el-text><br />
+                        <el-text type="success">输出: www.example.com</el-text>
+                      </el-descriptions-item>
+                      <el-descriptions-item label="示例 3">
+                        <el-text>输入: test.org</el-text><br />
+                        <el-text type="success">输出: test.org</el-text><br />
+                        <el-text type="success">输出: *.test.org</el-text><br />
+                        <el-text type="success">输出: www.test.org</el-text>
+                      </el-descriptions-item>
+                    </el-descriptions>
+                  </div>
+                </el-collapse-item>
+              </el-collapse>
+            </el-card>
+          </div>
+        </el-tab-pane>
+
         <!-- 预留其他工具的位置 -->
         <el-tab-pane label="更多工具" name="more" disabled>
           <el-empty description="更多工具正在开发中..." />
@@ -230,6 +377,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const activeTool = ref('domain-generator')
 const generating = ref(false)
+const extracting = ref(false)
 
 // 域名生成表单
 const domainForm = reactive({
@@ -241,6 +389,14 @@ const domainForm = reactive({
 
 // 生成的域名列表
 const generatedDomains = ref([])
+
+// URL提取器表单
+const urlExtractorForm = reactive({
+  urls: ''
+})
+
+// 提取的域名列表
+const extractedDomains = ref([])
 
 // 检查是否包含随机模式
 const hasRandomPattern = computed(() => {
@@ -433,6 +589,179 @@ function exportDomains() {
   const link = document.createElement('a')
   link.href = url
   link.download = `domains_${new Date().getTime()}.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+  ElMessage.success('导出成功')
+}
+
+// ========== URL域名提取器相关函数 ==========
+
+// 从域名生成三个变体
+function extractDomains() {
+  if (!urlExtractorForm.urls.trim()) {
+    ElMessage.warning('请输入域名')
+    return
+  }
+
+  extracting.value = true
+  const domains = urlExtractorForm.urls.trim().split('\n').filter(domain => domain.trim())
+  const results = []
+
+  try {
+    domains.forEach((domain) => {
+      const trimmedDomain = domain.trim()
+      if (!trimmedDomain) return
+
+      try {
+        // 清理域名：移除协议、路径、端口等
+        let cleanDomain = trimmedDomain
+        
+        // 移除 http:// 或 https://
+        cleanDomain = cleanDomain.replace(/^https?:\/\//, '')
+        
+        // 移除路径部分（/ 之后的内容）
+        cleanDomain = cleanDomain.split('/')[0]
+        
+        // 移除端口号（: 之后的内容）
+        cleanDomain = cleanDomain.split(':')[0]
+        
+        // 移除 www. 前缀（如果有），因为我们要生成 www. 变体
+        cleanDomain = cleanDomain.replace(/^www\./, '')
+        
+        // 验证域名格式
+        const domainRegex = /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/
+        if (!domainRegex.test(cleanDomain)) {
+          results.push({
+            originalDomain: trimmedDomain,
+            generatedDomain: '无效的域名格式',
+            type: '错误',
+            error: true
+          })
+          return
+        }
+
+        // 生成三个变体
+        const variants = [
+          {
+            originalDomain: trimmedDomain,
+            generatedDomain: cleanDomain,
+            type: '原始',
+            error: false
+          },
+          {
+            originalDomain: trimmedDomain,
+            generatedDomain: `*.${cleanDomain}`,
+            type: '通配符',
+            error: false
+          },
+          {
+            originalDomain: trimmedDomain,
+            generatedDomain: `www.${cleanDomain}`,
+            type: 'www',
+            error: false
+          }
+        ]
+
+        results.push(...variants)
+      } catch (error) {
+        results.push({
+          originalDomain: trimmedDomain,
+          generatedDomain: '解析失败: ' + error.message,
+          type: '错误',
+          error: true
+        })
+      }
+    })
+
+    extractedDomains.value = results
+    const successCount = results.filter(r => !r.error).length
+    const failCount = results.length - successCount
+    const domainCount = domains.length
+
+    if (failCount === 0) {
+      ElMessage.success(`成功生成 ${domainCount} 个域名的 ${successCount} 个变体`)
+    } else {
+      ElMessage.warning(`成功生成 ${successCount} 个变体，${failCount} 个失败`)
+    }
+  } catch (error) {
+    ElMessage.error('生成域名变体时出错: ' + error.message)
+  } finally {
+    extracting.value = false
+  }
+}
+
+// 清空提取结果
+function clearExtractedResults() {
+  if (extractedDomains.value.length === 0) {
+    return
+  }
+
+  ElMessageBox.confirm('确定要清空所有生成的域名吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    extractedDomains.value = []
+    urlExtractorForm.urls = ''
+    ElMessage.success('已清空')
+  }).catch(() => {})
+}
+
+// 复制所有生成的域名
+function copyAllExtractedDomains() {
+  if (extractedDomains.value.length === 0) {
+    ElMessage.warning('没有可复制的域名')
+    return
+  }
+
+  const validDomains = extractedDomains.value
+    .filter(item => !item.error)
+    .map(item => item.generatedDomain)
+    .join('\n')
+
+  if (!validDomains) {
+    ElMessage.warning('没有有效的域名可复制')
+    return
+  }
+
+  navigator.clipboard.writeText(validDomains).then(() => {
+    ElMessage.success(`已复制 ${validDomains.split('\n').length} 个域名到剪贴板`)
+  }).catch(() => {
+    ElMessage.error('复制失败')
+  })
+}
+
+// 删除单个提取的域名
+function removeExtractedDomain(index) {
+  extractedDomains.value.splice(index, 1)
+  ElMessage.success('已删除')
+}
+
+// 导出生成的域名到文件
+function exportExtractedDomains() {
+  if (extractedDomains.value.length === 0) {
+    ElMessage.warning('没有可导出的域名')
+    return
+  }
+
+  const validDomains = extractedDomains.value
+    .filter(item => !item.error)
+    .map(item => item.generatedDomain)
+    .join('\n')
+
+  if (!validDomains) {
+    ElMessage.warning('没有有效的域名可导出')
+    return
+  }
+
+  const content = validDomains
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `extracted_domains_${new Date().getTime()}.txt`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

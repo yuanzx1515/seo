@@ -31,16 +31,16 @@ const router = createRouter({
             path: '/seo',
             name: 'seo',
             component: () => import('@/views/SeoLayout.vue'),
-            redirect: '/seo/keyword',
+            redirect: '/seo/dashboard',
             children: [
                 {
+                    path: 'dashboard',
+                    name: 'seo-dashboard',
+                    component: () => import('@/views/seo/Dashboard.vue')
+                }, {
                     path: 'keyword',
                     name: 'seo-keyword',
                     component: () => import('@/views/seo/KeywordQuery.vue')
-                }, {
-                    path: 'trace',
-                    name: 'seo-trace',
-                    component: () => import('@/views/seo/WebsiteTrace.vue')
                 }, {
                     path: 'domain',
                     name: 'seo-domain',
@@ -49,6 +49,18 @@ const router = createRouter({
                     path: 'server',
                     name: 'seo-server',
                     component: () => import('@/views/seo/ServerManage.vue')
+                }, {
+                    path: 'site-search',
+                    name: 'seo-site-search',
+                    component: () => import('@/views/seo/SiteSearch.vue')
+                }, {
+                    path: 'tools',
+                    name: 'seo-tools',
+                    component: () => import('@/views/seo/Tools.vue')
+                }, {
+                    path: 'zhaopin',
+                    name: 'seo-zhaopin',
+                    component: () => import('@/views/seo/ZhaopinPublish.vue')
                 }
             ]
         }

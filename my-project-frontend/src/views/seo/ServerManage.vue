@@ -12,7 +12,7 @@
       <div class="search-area">
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索服务器IP或名称"
+          placeholder="搜索服务器名称、IP地址或地区"
           style="width: 300px; margin-right: 10px"
           clearable
         >
@@ -20,11 +20,6 @@
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
-        <el-select v-model="searchStatus" placeholder="状态筛选" style="width: 150px; margin-right: 10px" clearable>
-          <el-option label="全部" value="" />
-          <el-option label="在线" value="online" />
-          <el-option label="离线" value="offline" />
-        </el-select>
         <el-button type="primary" @click="handleSearch">搜索</el-button>
         <el-button @click="handleReset">重置</el-button>
       </div>
@@ -34,42 +29,17 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="服务器名称" min-width="150" />
         <el-table-column prop="ip" label="IP地址" min-width="150" />
-        <el-table-column prop="port" label="端口" width="100" />
-        <el-table-column prop="username" label="用户名" min-width="120" />
-        <el-table-column prop="type" label="类型" width="100">
+        <el-table-column prop="panelUrl" label="面板登录地址" min-width="200" />
+        <el-table-column prop="panelPassword" label="面板登录密码" min-width="150">
           <template #default="scope">
-            <el-tag>{{ scope.row.type }}</el-tag>
+            <span>{{ scope.row.panelPassword ? '******' : '' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="scope">
-            <el-tag :type="scope.row.status === 'online' ? 'success' : 'danger'">
-              {{ scope.row.status === 'online' ? '在线' : '离线' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="cpu" label="CPU使用率" width="120">
-          <template #default="scope">
-            <el-progress :percentage="scope.row.cpu || 0" :color="getProgressColor(scope.row.cpu)" />
-          </template>
-        </el-table-column>
-        <el-table-column prop="memory" label="内存使用率" width="120">
-          <template #default="scope">
-            <el-progress :percentage="scope.row.memory || 0" :color="getProgressColor(scope.row.memory)" />
-          </template>
-        </el-table-column>
-        <el-table-column prop="disk" label="磁盘使用率" width="120">
-          <template #default="scope">
-            <el-progress :percentage="scope.row.disk || 0" :color="getProgressColor(scope.row.disk)" />
-          </template>
-        </el-table-column>
-        <el-table-column prop="lastCheckTime" label="最后检查时间" width="180" />
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column prop="region" label="服务器所属地区" min-width="150" />
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="scope">
             <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button type="danger" size="small" @click="handleDelete(scope.row)">删除</el-button>
-            <el-button type="success" size="small" @click="handleCheck(scope.row)">检查</el-button>
-            <el-button type="warning" size="small" @click="handleConnect(scope.row)">连接</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -94,31 +64,21 @@
       :title="dialogTitle"
       width="600px"
     >
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
+      <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
         <el-form-item label="服务器名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入服务器名称" />
         </el-form-item>
         <el-form-item label="IP地址" prop="ip">
           <el-input v-model="form.ip" placeholder="请输入IP地址" />
         </el-form-item>
-        <el-form-item label="端口" prop="port">
-          <el-input-number v-model="form.port" :min="1" :max="65535" style="width: 100%" />
+        <el-form-item label="面板登录地址" prop="panelUrl">
+          <el-input v-model="form.panelUrl" placeholder="请输入面板登录地址，如：https://panel.example.com" />
         </el-form-item>
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名" />
+        <el-form-item label="面板登录密码" prop="panelPassword">
+          <el-input v-model="form.panelPassword" type="password" placeholder="请输入面板登录密码" show-password />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
-        </el-form-item>
-        <el-form-item label="类型" prop="type">
-          <el-select v-model="form.type" placeholder="请选择服务器类型" style="width: 100%">
-            <el-option label="Linux" value="linux" />
-            <el-option label="Windows" value="windows" />
-            <el-option label="MacOS" value="macos" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" />
+        <el-form-item label="服务器所属地区" prop="region">
+          <el-input v-model="form.region" placeholder="请输入服务器所属地区，如：北京、上海、广州等" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -136,7 +96,6 @@ import { Search } from '@element-plus/icons-vue'
 import { get, post } from '@/net'
 
 const searchKeyword = ref('')
-const searchStatus = ref('')
 const loading = ref(false)
 const serverList = ref([])
 const dialogVisible = ref(false)
@@ -153,11 +112,9 @@ const form = reactive({
   id: null,
   name: '',
   ip: '',
-  port: 22,
-  username: '',
-  password: '',
-  type: 'linux',
-  remark: ''
+  panelUrl: '',
+  panelPassword: '',
+  region: ''
 })
 
 const rules = {
@@ -168,23 +125,18 @@ const rules = {
     { required: true, message: '请输入IP地址', trigger: 'blur' },
     { pattern: /^(\d{1,3}\.){3}\d{1,3}$/, message: '请输入正确的IP地址格式', trigger: 'blur' }
   ],
-  port: [
-    { required: true, message: '请输入端口', trigger: 'blur' }
+  panelUrl: [
+    { required: true, message: '请输入面板登录地址', trigger: 'blur' },
+    { type: 'url', message: '请输入正确的URL格式', trigger: 'blur' }
   ],
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' }
+  panelPassword: [
+    { required: true, message: '请输入面板登录密码', trigger: 'blur' }
   ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' }
+  region: [
+    { required: true, message: '请输入服务器所属地区', trigger: 'blur' }
   ]
 }
 
-// 获取进度条颜色
-function getProgressColor(percentage) {
-  if (percentage < 50) return '#67c23a'
-  if (percentage < 80) return '#e6a23c'
-  return '#f56c6c'
-}
 
 // 搜索
 function handleSearch() {
@@ -195,7 +147,6 @@ function handleSearch() {
 // 重置
 function handleReset() {
   searchKeyword.value = ''
-  searchStatus.value = ''
   pagination.page = 1
   loadServerList()
 }
@@ -206,11 +157,9 @@ function handleAddServer() {
   form.id = null
   form.name = ''
   form.ip = ''
-  form.port = 22
-  form.username = ''
-  form.password = ''
-  form.type = 'linux'
-  form.remark = ''
+  form.panelUrl = ''
+  form.panelPassword = ''
+  form.region = ''
   dialogVisible.value = true
 }
 
@@ -220,11 +169,9 @@ function handleEdit(row) {
   form.id = row.id
   form.name = row.name
   form.ip = row.ip
-  form.port = row.port
-  form.username = row.username
-  form.password = ''
-  form.type = row.type
-  form.remark = row.remark
+  form.panelUrl = row.panelUrl
+  form.panelPassword = ''
+  form.region = row.region
   dialogVisible.value = true
 }
 
@@ -239,22 +186,6 @@ function handleDelete(row) {
       ElMessage.success('删除成功')
       loadServerList()
     })
-  })
-}
-
-// 检查服务器
-function handleCheck(row) {
-  post('/api/seo/server/check', { id: row.id }, (data) => {
-    ElMessage.success(`服务器状态：${data.status === 'online' ? '在线' : '离线'}`)
-    loadServerList()
-  })
-}
-
-// 连接服务器
-function handleConnect(row) {
-  post('/api/seo/server/connect', { id: row.id }, (data) => {
-    ElMessage.success('连接成功')
-    loadServerList()
   })
 }
 
@@ -280,7 +211,6 @@ function loadServerList() {
     size: pagination.size
   })
   if (searchKeyword.value) params.append('keyword', searchKeyword.value)
-  if (searchStatus.value) params.append('status', searchStatus.value)
   
   get(`/api/seo/server/list?${params.toString()}`, (data) => {
     serverList.value = data.list || []

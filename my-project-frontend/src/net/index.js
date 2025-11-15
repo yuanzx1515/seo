@@ -7,6 +7,10 @@ import { backlinkMockMap } from "@/mock/BacklinkMock";
 import { domainMockMap } from "@/mock/DomainMock";
 import { serverMockMap } from "@/mock/ServerMock";
 import { geoMockMap } from "@/mock/GeoMock";
+import { siteSearchMockMap } from "@/mock/SiteSearchMock";
+import { dashboardMockMap } from "@/mock/DashboardMock";
+import { zhaopinMockMap } from "@/mock/ZhaopinMock";
+import { keywordMockMap } from "@/mock/KeywordMock";
 
 const authItemName = "authorize"
 
@@ -16,7 +20,11 @@ const mockMap = {
   ...backlinkMockMap,
   ...domainMockMap,
   ...serverMockMap,
-  ...geoMockMap
+  ...geoMockMap,
+  ...siteSearchMockMap,
+  ...dashboardMockMap,
+  ...zhaopinMockMap,
+  ...keywordMockMap
 }
 
 const accessHeader = () => {
@@ -76,10 +84,19 @@ function deleteAccessToken(redirect = false) {
  * 查找匹配的Mock函数
  */
 function findMockHandler(method, url) {
-    // 先尝试精确匹配
+    // 分离URL路径和查询参数
+    const [urlPath, queryString] = url.split('?')
+    
+    // 先尝试精确匹配（包含查询参数）
     const exactKey = `${method} ${url}`
     if (mockMap[exactKey]) {
         return mockMap[exactKey]
+    }
+    
+    // 尝试精确匹配（不包含查询参数）
+    const exactKeyWithoutQuery = `${method} ${urlPath}`
+    if (mockMap[exactKeyWithoutQuery]) {
+        return mockMap[exactKeyWithoutQuery]
     }
     
     // 尝试匹配带路径参数的URL（如 /api/seo/website/code/:id）
@@ -87,9 +104,12 @@ function findMockHandler(method, url) {
         const [mockMethod, mockPath] = key.split(' ')
         if (mockMethod !== method) continue
         
+        // 分离Mock路径和查询参数
+        const [mockPathOnly] = mockPath.split('?')
+        
         // 将路径参数转换为正则表达式
-        const regexPath = mockPath.replace(/:[^/]+/g, '[^/]+')
-        const regex = new RegExp(`^${regexPath}$`)
+        const regexPath = mockPathOnly.replace(/:[^/]+/g, '[^/]+')
+        const regex = new RegExp(`^${regexPath}(\\?.*)?$`)
         if (regex.test(url)) {
             return mockMap[key]
         }
@@ -155,14 +175,17 @@ function executeMock(method, url, data, success, failure) {
     const params = { ...pathParams, ...queryParams }
     
     // 模拟网络延迟
-    setTimeout(() => {
+    setTimeout(async () => {
         try {
             let result
             if (method === 'GET') {
-                result = handler(params)
+                result = await handler(params)
+            } else if (method === 'DELETE') {
+                // DELETE请求使用路径参数
+                result = await handler(params)
             } else {
-                // POST请求合并路径参数和请求体数据
-                result = handler({ ...params, ...(data || {}) })
+                // POST/PUT等请求合并路径参数和请求体数据
+                result = await handler({ ...params, ...(data || {}) })
             }
             
             // 处理响应
@@ -219,11 +242,31 @@ function internalGet(url, headers, success, failure, error = defaultError){
     }).catch(err => error(err))
 }
 
+function internalDelete(url, headers, success, failure, error = defaultError){
+    // 检查是否启用Mock
+    if (MOCK_ENABLED && url.startsWith('/api/seo/')) {
+        executeMock('DELETE', url, null, success, failure)
+        return
+    }
+    
+    axios.delete(url, { headers: headers }).then(({data}) => {
+        if(data.code === 200) {
+            success(data.data)
+        } else if(data.code === 401) {
+            failure('登录状态已过期，请重新登录！')
+            deleteAccessToken(true)
+        } else {
+            failure(data.message, data.code, url)
+        }
+    }).catch(err => error(err))
+}
+
 function login(username, password, remember, success, failure = defaultFailure){
-    internalPost('/api/auth/login', {
+    const formData = new URLSearchParams({
         username: username,
         password: password
-    }, {
+    })
+    internalPost('/api/auth/login', formData, {
         'Content-Type': 'application/x-www-form-urlencoded'
     }, (data) => {
         storeAccessToken(remember, data.token, data.expire)
@@ -248,8 +291,12 @@ function get(url, success, failure = defaultFailure) {
     internalGet(url, accessHeader(), success, failure)
 }
 
+function del(url, success, failure = defaultFailure) {
+    internalDelete(url, accessHeader(), success, failure)
+}
+
 function unauthorized() {
     return !takeAccessToken()
 }
 
-export { post, get, login, logout, unauthorized }
+export { post, get, del, login, logout, unauthorized }

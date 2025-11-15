@@ -14,21 +14,33 @@
           active-text-color="#ffffff"
           @select="handleMenuSelect"
         >
+          <el-menu-item index="/seo/dashboard">
+            <el-icon><Odometer /></el-icon>
+            <span>工作台</span>
+          </el-menu-item>
           <el-menu-item index="/seo/keyword">
             <el-icon><Search /></el-icon>
             <span>网站关键字查询</span>
-          </el-menu-item>
-          <el-menu-item index="/seo/trace">
-            <el-icon><Files /></el-icon>
-            <span>网站痕迹</span>
           </el-menu-item>
           <el-menu-item index="/seo/domain">
             <el-icon><Location /></el-icon>
             <span>域名管理</span>
           </el-menu-item>
           <el-menu-item index="/seo/server">
-            <el-icon><Server /></el-icon>
+            <el-icon><Monitor /></el-icon>
             <span>服务器管理</span>
+          </el-menu-item>
+          <el-menu-item index="/seo/site-search">
+            <el-icon><Connection /></el-icon>
+            <span>站内搜索查询</span>
+          </el-menu-item>
+          <el-menu-item index="/seo/tools">
+            <el-icon><Setting /></el-icon>
+            <span>工具合集</span>
+          </el-menu-item>
+          <el-menu-item index="/seo/zhaopin">
+            <el-icon><EditPen /></el-icon>
+            <span>智联招聘发布</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
@@ -67,10 +79,13 @@ const router = useRouter()
 const activeMenu = computed(() => route.path)
 
 const pageTitleMap = {
+  '/seo/dashboard': '工作台',
   '/seo/keyword': '网站关键字查询',
-  '/seo/trace': '网站痕迹',
   '/seo/domain': '域名管理',
-  '/seo/server': '服务器管理'
+  '/seo/server': '服务器管理',
+  '/seo/site-search': '站内搜索查询',
+  '/seo/tools': '工具合集',
+  '/seo/zhaopin': '智联招聘发布'
 }
 
 const currentPageTitle = computed(() => {
@@ -84,10 +99,13 @@ function handleMenuSelect(index) {
     if (err?.name !== 'NavigationDuplicated') {
       // 如果跳转失败且不是重复导航，尝试使用路由名称
       const routeNameMap = {
+        '/seo/dashboard': 'seo-dashboard',
         '/seo/keyword': 'seo-keyword',
-        '/seo/trace': 'seo-trace',
         '/seo/domain': 'seo-domain',
-        '/seo/server': 'seo-server'
+        '/seo/server': 'seo-server',
+        '/seo/site-search': 'seo-site-search',
+        '/seo/tools': 'seo-tools',
+        '/seo/zhaopin': 'seo-zhaopin'
       }
       if (routeNameMap[index]) {
         router.push({ name: routeNameMap[index] }).catch(console.error)

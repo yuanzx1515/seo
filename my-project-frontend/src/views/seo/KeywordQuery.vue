@@ -10,9 +10,9 @@
       <!-- 搜索区域 -->
       <div class="search-area">
         <el-input
-          v-model="searchDomain"
-          placeholder="输入域名进行查询"
-          style="width: 400px; margin-right: 10px"
+          v-model="searchUrl"
+          placeholder="输入网站URL（如：example.com 或 https://example.com）"
+          style="width: 500px; margin-right: 10px"
           clearable
         >
           <template #prefix>
@@ -27,20 +27,29 @@
       </div>
 
       <!-- 查询结果 -->
-      <div v-if="searchResults.length > 0" class="results-area">
+      <div v-if="websiteInfo" class="results-area">
         <el-divider>查询结果</el-divider>
-        <el-table :data="searchResults" style="width: 100%; margin-top: 20px" v-loading="searching">
-          <el-table-column prop="keyword" label="关键字" min-width="150" />
-          <el-table-column prop="website" label="网站" min-width="200" />
-          <el-table-column prop="rank" label="排名" width="100" />
-          <el-table-column prop="url" label="URL" min-width="250" />
-          <el-table-column prop="title" label="标题" min-width="200" />
-          <el-table-column prop="updateTime" label="更新时间" width="180" />
-        </el-table>
+        <el-descriptions :column="1" border style="margin-top: 20px">
+          <el-descriptions-item label="网站URL">
+            <el-link :href="websiteInfo.url" target="_blank" type="primary">
+              {{ websiteInfo.url }}
+            </el-link>
+          </el-descriptions-item>
+          <el-descriptions-item label="网站标题">
+            <span :class="{ 'text-placeholder': !websiteInfo.title || websiteInfo.title === '未找到标题' }">
+              {{ websiteInfo.title || '未找到标题' }}
+            </span>
+          </el-descriptions-item>
+          <el-descriptions-item label="Meta描述">
+            <span :class="{ 'text-placeholder': !websiteInfo.metaDescription || websiteInfo.metaDescription === '未找到描述' }">
+              {{ websiteInfo.metaDescription || '未找到描述' }}
+            </span>
+          </el-descriptions-item>
+        </el-descriptions>
       </div>
 
       <!-- 空状态 -->
-      <el-empty v-if="!searching && searchResults.length === 0 && hasSearched" description="暂无查询结果" />
+      <el-empty v-if="!searching && !websiteInfo && hasSearched" description="暂无查询结果" />
     </el-card>
   </div>
 </template>
@@ -51,55 +60,35 @@ import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { get } from '@/net'
 
-const searchDomain = ref('')
+const searchUrl = ref('')
 const searching = ref(false)
-const searchResults = ref([])
+const websiteInfo = ref(null)
 const hasSearched = ref(false)
 
 function handleSearch() {
-  if (!searchDomain.value.trim()) {
-    ElMessage.warning('请输入域名')
+  if (!searchUrl.value.trim()) {
+    ElMessage.warning('请输入网站URL')
     return
   }
   
   searching.value = true
   hasSearched.value = true
+  websiteInfo.value = null
   
-  // 使用Mock数据或API
-  get(`/api/seo/keyword/query?domain=${encodeURIComponent(searchDomain.value)}`, (data) => {
-    searchResults.value = data.list || []
+  // 调用API查询网站信息
+  get(`/api/seo/keyword/query?url=${encodeURIComponent(searchUrl.value)}`, (data) => {
+    websiteInfo.value = data
     ElMessage.success('查询完成')
     searching.value = false
-  }, () => {
-    // Mock数据
-    setTimeout(() => {
-      searchResults.value = [
-        {
-          keyword: '示例关键词1',
-          website: searchDomain.value,
-          rank: 1,
-          url: `https://${searchDomain.value}/page1`,
-          title: '搜索结果标题1',
-          updateTime: '2024-01-20 10:30:00'
-        },
-        {
-          keyword: '示例关键词2',
-          website: searchDomain.value,
-          rank: 2,
-          url: `https://${searchDomain.value}/page2`,
-          title: '搜索结果标题2',
-          updateTime: '2024-01-20 10:30:00'
-        }
-      ]
-      searching.value = false
-      ElMessage.success('查询完成')
-    }, 1000)
+  }, (message) => {
+    ElMessage.error(message || '查询失败')
+    searching.value = false
   })
 }
 
 function handleReset() {
-  searchDomain.value = ''
-  searchResults.value = []
+  searchUrl.value = ''
+  websiteInfo.value = null
   hasSearched.value = false
 }
 </script>
@@ -131,6 +120,11 @@ function handleReset() {
 
 .results-area {
   margin-top: 24px;
+}
+
+.text-placeholder {
+  color: #909399;
+  font-style: italic;
 }
 </style>
 

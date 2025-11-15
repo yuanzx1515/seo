@@ -35,6 +35,17 @@ public record RestBean<T> (long id, int code, T data, String message) {
     }
 
     /**
+     * 失败响应，支持传入data
+     * @param code 状态码
+     * @param message 错误消息
+     * @param data 响应数据
+     * @return RestBean
+     */
+    public static <T> RestBean<T> failure(int code, String message, T data){
+        return new RestBean<>(requestId(), code, data, message);
+    }
+
+    /**
      * 快速将当前实体转换为JSON字符串格式
      * @return JSON字符串
      */

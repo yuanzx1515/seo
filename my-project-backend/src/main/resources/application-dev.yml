@@ -14,14 +14,14 @@ spring:
     password: admin
     virtual-host: /
   datasource:
-    url: jdbc:mysql://localhost:3306/test
+    url: jdbc:mysql://118.89.121.54:3306/seo
     username: root
-    password: 123456
+    password: mysql_fdP2xy
     driver-class-name: com.mysql.cj.jdbc.Driver
   security:
     jwt:
       key: 'abcdefghijklmn'
-      expire: 72
+      expire: 168
       limit:
         base: 10
         upgrade: 300

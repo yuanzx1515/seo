@@ -25,7 +25,7 @@ spring:
   security:
     jwt:
       key: 'abcdefghijklmn'
-      expire: 72
+      expire: 168
       limit:
         base: 10
         upgrade: 300
