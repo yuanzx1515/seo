@@ -6,6 +6,8 @@ import com.example.entity.dto.KeywordQuery;
 import com.example.entity.vo.KeywordQueryVO;
 import com.example.mapper.KeywordQueryMapper;
 import com.example.service.KeywordQueryService;
+import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -19,9 +21,11 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class KeywordQueryServiceImpl extends ServiceImpl<KeywordQueryMapper, KeywordQuery> implements KeywordQueryService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Resource
+    private final RestTemplate restTemplate;
 
     //代理
 
